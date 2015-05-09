@@ -1,41 +1,14 @@
 from __future__ import division
 from direct.showbase.ShowBase import ShowBase
-from direct.showbase.DirectObject import DirectObject
 from direct.actor.Actor import ActorNode, Camera
-from panda3d.core import WindowProperties, NodePath, LVector3, KeyboardButton
-from panda3d.core import GeomNode, LineSegs
+from panda3d.core import WindowProperties, NodePath, LVector3
+from panda3d.core import LineSegs
+from inputs import Inputs
 import square
-import sys
-try:
-    import pygame
-except ImportError:
-    pygame = False
-    print 'Pygame not found, necessary for joystick use'
-# from direct.task import Task
-# from panda3d.core import CardMaker
-# from direct.gui.OnscreenImage import OnscreenImage
 
 
-class ColorWorld(DirectObject):
+class ColorWorld(object):
     def __init__(self, config=None):
-        DirectObject.__init__(self)
-        # joystick
-        js_count = 0
-        self.joystick = None
-        if pygame:
-            pygame.init()
-            js_count = pygame.joystick.get_count()
-        if js_count > 1:
-            raise NotImplementedError("More than one Joystick is connected")
-        elif js_count == 1:
-            self.joystick = pygame.joystick.Joystick(0)
-            print 'load joystick'
-            self.joystick.init()
-            print 'joystick open'
-            print self.joystick.get_numaxes()
-            # threshold for joystick
-            self.threshold = 0.1
-        print('joystick', self.joystick)
         # keep track of velocity, this allows me to counteract joystick with keyboard
         self.velocity = LVector3(0)
         if config is None:
@@ -68,8 +41,11 @@ class ColorWorld(DirectObject):
         self.base.disableMouse()
         # assume we are showing windows unless proven otherwise
         if config.get('win', True):
+            # only need inputs if we have a window
+            self.inputs = Inputs(self.base)
             props = WindowProperties()
             props.setCursorHidden(True)
+            props.setForeground(True)
             print config.get('resolution')
             if config.get('resolution'):
                 props.set_size(int(config['resolution'][0]), int(config['resolution'][1]))
@@ -89,8 +65,6 @@ class ColorWorld(DirectObject):
         self.base.camera.reparentTo(self.avatar)
         self.base.camera.setPos(0, 0, 0)
         self.avatar.setPos(-10, -10, 2)
-
-        self.setup_inputs()
         self.frameTask = self.base.taskMgr.add(self.frame_loop, "frame_loop")
         self.frameTask.last = 0  # task time of the last frame
         self.base.setBackgroundColor(self.color_list[:])
@@ -99,71 +73,11 @@ class ColorWorld(DirectObject):
     def frame_loop(self, task):
         dt = task.time - task.last
         task.last = task.time
-        self.poll_joystick()
-        self.poll_keyboard()
+        self.velocity = self.inputs.poll_inputs(self.velocity)
         move = self.move_avatar(dt)
         stop = self.change_background(move)
         self.move_map_avatar(move, stop)
-
         return task.cont
-
-    def poll_joystick(self):
-        if not self.joystick:
-            return
-        # joystick input -1 to 1,
-        # if I get the event, it only has a signal when
-        # there is movement, so loop through the events,
-        # to collect events into axis call, but call
-        # axis after, since it will stay at whatever the
-        # last signal was, instead of zeroing out whenever
-        # no movement. Much more convenient that way.
-        for event in pygame.event.get():
-            pass
-        x = self.joystick.get_axis(0)
-        y = self.joystick.get_axis(1)
-
-        # if both are under threshold, assume noise
-        # if one is deliberate, noise in the other won't affect much
-        if -self.threshold < x < self.threshold and -self.threshold < y < self.threshold:
-            # print 'threshold'
-            # print 'x', x, 'y', y
-            self.velocity.x = 0
-            self.velocity.y = 0
-        else:
-            self.velocity.x = x
-            self.velocity.y = -y
-
-    def poll_keyboard(self):
-        # under normal circumstances, use median of joytick output
-        x_speed = 0.5
-        y_speed = 0.5
-        # checks keyboard, not mouse, in this case
-        is_down = self.base.mouseWatcherNode.is_button_down
-        # Instead of usual movement, exactly counteract joystick,
-        # if using joystick and currently moving
-        if self.joystick:
-            if abs(self.velocity.x) > self.threshold:
-                if self.velocity.x > 0:
-                    x_speed = self.velocity.x
-                else:
-                    x_speed = -self.velocity.x
-            if abs(self.velocity.y) > self.threshold:
-                if self.velocity.y > 0:
-                    y_speed = self.velocity.y
-                else:
-                    y_speed = -self.velocity.y
-        else:
-            self.velocity.x = 0
-            self.velocity.y = 0
-        if is_down(KeyboardButton.up()):
-            self.velocity.y += y_speed
-        if is_down(KeyboardButton.down()):
-            self.velocity.y -= y_speed
-        if is_down(KeyboardButton.left()):
-            self.velocity.x -= x_speed
-            # print 'keyboard'
-        if is_down(KeyboardButton.right()):
-            self.velocity.x += x_speed
 
     def move_avatar(self, dt):
         # print 'velocity', self.velocity
@@ -242,9 +156,6 @@ class ColorWorld(DirectObject):
                         break
                 del self.map_avt_node[0:50]
 
-    def setup_inputs(self):
-        self.accept('q', self.close)
-
     def setup_display2(self, display_node, config):
         props = WindowProperties()
         props.setCursorHidden(True)
@@ -264,10 +175,6 @@ class ColorWorld(DirectObject):
         self.render2d = NodePath('render2d')
         camera2d = self.base.makeCamera(window2)
         camera2d.reparentTo(self.render2d)
-
-    def close(self):
-        pygame.quit()
-        sys.exit()
 
 
 if __name__ == "__main__":

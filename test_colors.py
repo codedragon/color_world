@@ -87,5 +87,6 @@ class ColorWorldTests(unittest.TestCase):
         self.assertEqual(stop, [False, False, True])
         test_cw.base.destroy()
 
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
