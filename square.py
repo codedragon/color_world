@@ -3,6 +3,7 @@ from panda3d.core import GeomVertexFormat, GeomVertexData
 from panda3d.core import Geom, GeomTriangles, GeomVertexWriter
 from panda3d.core import GeomNode
 from panda3d.core import LVector3
+import random
 
 
 def make_color_map(colors):
@@ -14,6 +15,7 @@ def make_color_map(colors):
     # output is a dictionary, that shows mapping from x,y,z space to color space r,g,b
     # so, if we want (assuming above example input) x:b, y:r, z:None than our dictionary will
     # be 0:2, 1:0, 2:None
+    # keys are x,y,x, values are r,g,b
     color_map = {0: None, 1: None, 2: None}
     # color_map = [None, None, None]
     for i, j in enumerate(colors):
@@ -26,15 +28,68 @@ def make_color_map(colors):
     return color_map
 
 
+# if setting the matching color manually,
+# set colors to some combination of midpoint and static for starting position
+# otherwise random and static
 def set_start_colors(config):
-    # starting position is middle of space.
-    mid = config['variance'][0] + (config['variance'][1] - config['variance'][0])/2
-    print('midpoint', mid)
+    if config.get('match_direction') is None:
+        print 'random'
+        color_list = set_random_colors(config)
+    else:
+        print 'fixed'
+        mid = config['c_range'][0] + (config['c_range'][1] - config['c_range'][0])/2
+        color_list = [mid, mid, mid]
+    color_list = fix_static_colors(config['colors'], config['static'], color_list)
+    return color_list
+
+
+# also use random for setting up match, if not fixed
+# for setting up match, also want to specify which extreme to choose (left,right,front,back)
+def set_match_colors(color_dict):
+    # if not using fixed color, using random
+    if color_dict.get('match_direction') is None:
+        color_list = set_random_colors(color_dict)
+    else:
+        color_list = fix_target(color_dict)
+    color_list = fix_static_colors(color_dict['colors'], color_dict['static'], color_list)
+    return color_list
+
+
+def set_random_colors(color_dict):
+    color_list = [random.uniform(color_dict['c_range'][0], color_dict['c_range'][1]) for i in range(3)]
+    return color_list
+
+
+def fix_static_colors(colors, static, color_list):
+    # finds color(s) that is/are not changing, and set
+    # it equal to static. rest stay same.
     all_colors = ['r', 'g', 'b']
-    color_list = [mid, mid, mid]
     for i, j in enumerate(all_colors):
-        if j not in config['colors']:
-            color_list[i] = config['static']
+        if j not in colors:
+            color_list[i] = static
+    return color_list
+
+
+def fix_target(color_dict):
+    color_list = [0, 0, 0]
+    # to make sure we have set the correct direction, corresponding directions available
+    # only change to that direction, if we are using that axis.
+    if color_dict['colors'][0]:
+        print 'x direction'
+        print color_dict
+        if any(d == 'right' for d in color_dict['match_direction']):
+            color_list[color_dict[0]] = color_dict['c_range'][1]
+        if any(d == 'left' for d in color_dict['match_direction']):
+            color_list[color_dict[0]] = color_dict['c_range'][0]
+    if len(color_dict['colors']) > 1 and color_dict['colors'][1]:
+        if any(d == 'front' for d in color_dict['match_direction']):
+            color_list[color_dict[1]] = color_dict['c_range'][0]
+        if any(d == 'back' for d in color_dict['match_direction']):
+            color_list[color_dict[1]] = color_dict['c_range'][1]
+    # if things didn't match up, will have all zeros.
+    if all([c == 0 for c in color_list]):
+        raise NotImplementedError('a direction was not set')
+    # do another raise if there are two axis and just one set direction?
     return color_list
 
 
@@ -135,29 +190,29 @@ def make_color_vertices(config):
     for i in test:
         if i == config['colors'][0]:
             # x coordinate
-            color_vertices[0][test.index(i)] = config['variance'][0]  # bottom left
-            color_vertices[1][test.index(i)] = config['variance'][1]  # bottom right
-            color_vertices[2][test.index(i)] = config['variance'][1]  # top right
-            color_vertices[3][test.index(i)] = config['variance'][0]  # top left
+            color_vertices[0][test.index(i)] = config['c_range'][0]  # bottom left
+            color_vertices[1][test.index(i)] = config['c_range'][1]  # bottom right
+            color_vertices[2][test.index(i)] = config['c_range'][1]  # top right
+            color_vertices[3][test.index(i)] = config['c_range'][0]  # top left
         elif i == config['colors'][1]:
             # y coordinate
-            color_vertices[0][test.index(i)] = config['variance'][0]  # bottom left
-            color_vertices[1][test.index(i)] = config['variance'][0]  # bottom right
-            color_vertices[2][test.index(i)] = config['variance'][1]  # top right
-            color_vertices[3][test.index(i)] = config['variance'][1]  # top left
+            color_vertices[0][test.index(i)] = config['c_range'][0]  # bottom left
+            color_vertices[1][test.index(i)] = config['c_range'][0]  # bottom right
+            color_vertices[2][test.index(i)] = config['c_range'][1]  # top right
+            color_vertices[3][test.index(i)] = config['c_range'][1]  # top left
         elif i == config['colors'][2]:
             # this definitely needs testing. not even sure what I want to happen here...
             # if I use the mid for bottom right and top left, I have something very similar
             # to what I have with two colors, the only difference is the bottom left corner
-            mid = config['variance'][0] + (config['variance'][1] - config['variance'][0])/2
-            color_vertices[0][test.index(i)] = config['variance'][1]  # bottom left
+            mid = config['c_range'][0] + (config['c_range'][1] - config['c_range'][0])/2
+            color_vertices[0][test.index(i)] = config['c_range'][1]  # bottom left
             color_vertices[1][test.index(i)] = mid  # bottom right
-            color_vertices[2][test.index(i)] = config['variance'][0]  # top right
+            color_vertices[2][test.index(i)] = config['c_range'][0]  # top right
             color_vertices[3][test.index(i)] = mid  # top left
-            # color_vertices[0][test.index(i)] = config['variance'][1]  # bottom left
-            # color_vertices[1][test.index(i)] = config['variance'][0]  # bottom right
-            # color_vertices[2][test.index(i)] = config['variance'][0]  # top right
-            # color_vertices[3][test.index(i)] = config['variance'][0]  # top left
+            # color_vertices[0][test.index(i)] = config['c_range'][1]  # bottom left
+            # color_vertices[1][test.index(i)] = config['c_range'][0]  # bottom right
+            # color_vertices[2][test.index(i)] = config['c_range'][0]  # top right
+            # color_vertices[3][test.index(i)] = config['c_range'][0]  # top left
         else:
             for j in range(4):
                 color_vertices[j][test.index(i)] = config['static']

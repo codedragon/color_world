@@ -27,7 +27,7 @@ class ColorWorldTests(unittest.TestCase):
 
     def test_make_color_vertices(self):
         config = {'colors': ['g', 'r'],
-                  'variance': [0.2, 0.7],
+                  'c_range': [0.2, 0.7],
                   'static': 0.1}
         # green on x axis, red on y axis, blue static
         color_vertices = square.make_color_vertices(config)
@@ -38,18 +38,61 @@ class ColorWorldTests(unittest.TestCase):
         self.assertEqual(color_vertices, known)
 
     def test_starting_colors(self):
+        # not setting fixed_color, so should return random
         config = {'colors': ['b', 'r'],
-                  'variance': [0.2, 0.7],
+                  'c_range': [0.2, 0.7],
                   'static': 0.1}
         color_list = square.set_start_colors(config)
-        mid = config['variance'][0] + (config['variance'][1] - config['variance'][0])/2
+        # red and blue between c_range, green static
+        # print color_list
+        self.assertTrue(0.2 <= color_list[0] <= 0.7)
+        self.assertEqual(0.1, color_list[1])
+        self.assertTrue(0.2 <= color_list[0] <= 0.7)
+
+    def test_fixed_start_colors(self):
+        config = {'colors': ['b', 'r'],
+                  'c_range': [0.2, 0.7],
+                  'static': 0.1,
+                  'match_direction': ['right']}
+        color_list = square.set_start_colors(config)
+        mid = config['c_range'][0] + (config['c_range'][1] - config['c_range'][0])/2
         self.assertEqual([mid, 0.1, mid], color_list)
+
+    def test_fixed_match_single_color(self):
+        config = {'colors': ['b'],
+                  'c_range': [0.2, 0.7],
+                  'static': 0.1,
+                  'match_direction': ['left']}
+        color_dict = square.make_color_map(config['colors'])
+        config.update(color_dict)
+        color_list = square.set_match_colors(config)
+        self.assertEqual([0.1, 0.1, 0.2], color_list)
+
+    def test_fixed_match_colors(self):
+        config = {'colors': ['b'],
+                  'c_range': [0.2, 0.7],
+                  'static': 0.1,
+                  'match_direction': ['right']}
+        color_dict = square.make_color_map(config['colors'])
+        config.update(color_dict)
+        color_list = square.set_match_colors(config)
+        self.assertEqual([0.1, 0.1, 0.7], color_list)
+
+    def test_mis_matched_config(self):
+        config = {'colors': [None, 'r'],
+                  'c_range': [0.2, 0.7],
+                  'static': 0.1,
+                  'match_direction': ['right']}
+        color_dict = square.make_color_map(config['colors'])
+        config.update(color_dict)
+        self.assertRaises(NotImplementedError, square.set_match_colors, config)
 
     def test_change_background(self):
         config = {'colors': ['g', 'r'],
-                  'variance': [0.2, 0.7],
+                  'c_range': [0.2, 0.7],
                   'static': 0.1,
-                  'win': False}
+                  'win': False,
+                  'tolerance': 0.1}
         loadPrcFileData("", "window-type offscreen")
         test_cw = cw.ColorWorld(config)
         # force some variables to be what we want them to be.
@@ -68,9 +111,10 @@ class ColorWorldTests(unittest.TestCase):
 
     def test_change_background_two_axis(self):
         config = {'colors': ['g', 'r'],
-                  'variance': [0.2, 0.7],
+                  'c_range': [0.2, 0.7],
                   'static': 0.1,
-                  'win': False}
+                  'win': False,
+                  'tolerance': 0.1}
         loadPrcFileData("", "window-type offscreen")
         test_cw = cw.ColorWorld(config)
         # force some variables to be what we want them to be.

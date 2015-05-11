@@ -20,12 +20,22 @@ class ColorWorld(object):
         self.color_list = square.set_start_colors(config)
         print 'start color',  self.color_list
         print self.color_dict
-        self.variance = config['variance']
+        # sets the range of colors for this map
+        self.c_range = config['c_range']
+        # sets the tolerance for how close to a color for reward
+        self.tolerance = config['tolerance']
+        #
+        if config.get('fixed_color'):
+            # get user start place
+            self.color_match = square.set_fixed_colors(config)
+        else:
+            # choose a random color
+            self.color_match = square.set_random_colors(config)
         # adjustment to speed so corresponds to gobananas task
         # 7 seconds to cross original environment
         # speed needs to be adjusted to both speed in original
-        # environment and variance of colors
-        # self.speed = 0.05 * (self.variance[1] - self.variance[0])
+        # environment and c_range of colors
+        # self.speed = 0.05 * (self.c_range[1] - self.c_range[0])
         self.speed = 0.05
         # map avatar variables
         self.render2 = None
@@ -77,6 +87,7 @@ class ColorWorld(object):
         move = self.move_avatar(dt)
         stop = self.change_background(move)
         self.move_map_avatar(move, stop)
+        self.check_color_match()
         return task.cont
 
     def move_avatar(self, dt):
@@ -110,19 +121,20 @@ class ColorWorld(object):
                     # keys correspond to x,y,z
                     # values correspond to r,g,b
                     if key == 2:
+                        # z axis is treated differently
                         # need to work on this. z should
                         # be at min when both x and y are at max
-                        # z axis is treated differently
+                        # taking the average is not quite right...
                         z_move = (move[0] + move[1])/2
                         # print z_move
                         self.color_list[value] -= z_move
                     else:
                         self.color_list[value] += move[key]
-                    if self.color_list[value] < self.variance[0]:
-                        self.color_list[value] = self.variance[0]
+                    if self.color_list[value] < self.c_range[0]:
+                        self.color_list[value] = self.c_range[0]
                         stop[key] = True
-                    elif self.color_list[value] > self.variance[1]:
-                        self.color_list[value] = self.variance[1]
+                    elif self.color_list[value] > self.c_range[1]:
+                        self.color_list[value] = self.c_range[1]
                         stop[key] = True
             self.base.setBackgroundColor(self.color_list[:])
             # print self.base.getBackgroundColor()
@@ -130,8 +142,8 @@ class ColorWorld(object):
 
     def move_map_avatar(self, move, stop):
         # print move
-        # avatar is mapped assuming variance of 0.5. What do I need to
-        # change to use a different variance? variance of one is twice
+        # avatar is mapped assuming c_range of 0.5. What do I need to
+        # change to use a different c_range? c_range of one is twice
         # the
         if move:
             avt = LineSegs()
@@ -155,6 +167,10 @@ class ColorWorld(object):
                     if i > 49:
                         break
                 del self.map_avt_node[0:50]
+
+    def check_color_match(self):
+        check_color = [self.color_tolerance[0] < i < self.color_tolerance[1] for i in self.color_list]
+
 
     def setup_display2(self, display_node, config):
         props = WindowProperties()
