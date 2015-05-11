@@ -40,7 +40,17 @@ class ColorWorld(object):
         # map avatar variables
         self.render2 = None
         self.render2d = None
+        # what happens to starting position for map avatar when not changing in either x or y
+        # map has zero in the center (instead of middle middle of color range), so must translate
+        # range for map avatar is (-0.25, 0.25, -0.25, 0.25)
         self.last_avt = [0, 0]
+        if self.color_dict[0] is not None:
+            self.last_avt[0] = (self.color_list[self.color_dict[0]]/2) - 0.25
+        if self.color_dict[1] is not None:
+            self.last_avt[1] = (self.color_list[self.color_dict[1]]/2) - 0.25
+        # need to figure out how to convert color to position. Know the scale is the same
+        # self.last_avt = [0, 0]
+        print self.last_avt
         self.map_avt_node = []
 
         # need a multiplier to the joystick output to tolerable speed
@@ -87,7 +97,7 @@ class ColorWorld(object):
         move = self.move_avatar(dt)
         stop = self.change_background(move)
         self.move_map_avatar(move, stop)
-        self.check_color_match()
+        # self.check_color_match()
         return task.cont
 
     def move_avatar(self, dt):

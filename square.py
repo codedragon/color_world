@@ -50,7 +50,7 @@ def set_match_colors(color_dict):
     if color_dict.get('match_direction') is None:
         color_list = set_random_colors(color_dict)
     else:
-        color_list = fix_target(color_dict)
+        color_list = set_fixed_colors(color_dict)
     color_list = fix_static_colors(color_dict['colors'], color_dict['static'], color_list)
     return color_list
 
@@ -60,17 +60,7 @@ def set_random_colors(color_dict):
     return color_list
 
 
-def fix_static_colors(colors, static, color_list):
-    # finds color(s) that is/are not changing, and set
-    # it equal to static. rest stay same.
-    all_colors = ['r', 'g', 'b']
-    for i, j in enumerate(all_colors):
-        if j not in colors:
-            color_list[i] = static
-    return color_list
-
-
-def fix_target(color_dict):
+def set_fixed_colors(color_dict):
     color_list = [0, 0, 0]
     # to make sure we have set the correct direction, corresponding directions available
     # only change to that direction, if we are using that axis.
@@ -90,6 +80,16 @@ def fix_target(color_dict):
     if all([c == 0 for c in color_list]):
         raise NotImplementedError('a direction was not set')
     # do another raise if there are two axis and just one set direction?
+    return color_list
+
+
+def fix_static_colors(colors, static, color_list):
+    # finds color(s) that is/are not changing, and set
+    # it equal to static. rest stay same.
+    all_colors = ['r', 'g', 'b']
+    for i, j in enumerate(all_colors):
+        if j not in colors:
+            color_list[i] = static
     return color_list
 
 
