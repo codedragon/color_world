@@ -32,4 +32,4 @@ static = 0.1
 # how close to a color to get reward
 tolerance = 0.01
 
-# resolution = [1024, 768]
+resolution = [1024, 768]

@@ -154,20 +154,19 @@ class ColorWorld(object):
             avt.setThickness(1)
             avt.setColor(1, 1, 1)
             # print 'last', self.last_avt
-            avt.move_to(self.last_avt[0], 1, self.last_avt[1])
-            # new_move = [i + (j * self.avt_factor) for i, j in zip(self.last_avt, move)]
-            new_move = [i + j for i, j in zip(self.last_avt, move)]
+            avt.move_to(self.last_avt[0], -5, self.last_avt[1])
+            new_move = [i + (j * self.avt_factor) for i, j in zip(self.last_avt, move)]
+            # new_move = [i + j for i, j in zip(self.last_avt, move)]
+            # would it be better to have a local stop condition?
             if stop[0]:
-                pass
-                # new_move[0] = self.last_avt[0]
+                new_move[0] = self.last_avt[0]
                 # print 'stop x', self.last_avt[0]
             if stop[1]:
-                pass
-                # new_move[1] = self.last_avt[1]
+                new_move[1] = self.last_avt[1]
                 # print 'stop y', self.last_avt[1]
-            print 'new', new_move
+            # print 'new', new_move
             self.last_avt = [new_move[0], new_move[1]]
-            avt.draw_to(new_move[0], 1, new_move[1])
+            avt.draw_to(new_move[0], -5, new_move[1])
             self.map_avt_node.append(self.render2d.attach_new_node(avt.create()))
             # can't let too many nodes pile up
             if len(self.map_avt_node) > 299:
@@ -184,20 +183,30 @@ class ColorWorld(object):
         props = WindowProperties()
         props.setCursorHidden(True)
         if config.get('resolution'):
-            props.setSize(750, 750)
-            props.setOrigin(-int(config['resolution'][0]), 0)
+            props.setSize(700, 700)
+            props.setOrigin(-int(config['resolution'][0] - 5), 5)
         else:
             props.setSize(300, 300)
             props.setOrigin(10, 10)
         window2 = self.base.openWindow(props=props, aspectRatio=1)
-        self.render2 = NodePath('render2')
-        camera = self.base.camList[-1]
-        camera.reparentTo(self.render2)
-        camera.setPos(0, -5, 0)
-        self.render2.attach_new_node(display_node)
-        print 'render2', self.render2
+
+        # self.render2 = NodePath('render2')
+        # camera = self.base.camList[-1]
+        lens = OrthographicLens()
+        lens.set_film_size(2, 2)
+        lens.setNearFar(-100, 100)
+        # camera.node().setLens(lens)
+        # self.base.render2d.attach_new_node(camera)
+
+        # camera.reparent_to(self.render2)
+        # camera.setPos(0, -5, 0)
+        # self.render2.attach_new_node(display_node)
+        # print 'render2', self.render2
         self.render2d = NodePath('render2d')
+        self.render2d.attach_new_node(display_node)
         camera2d = self.base.makeCamera(window2)
+        camera2d.setPos(0, -10, 0)
+        camera2d.node().setLens(lens)
         camera2d.reparentTo(self.render2d)
 
 
