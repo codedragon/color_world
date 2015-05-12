@@ -87,6 +87,32 @@ class ColorWorldTests(unittest.TestCase):
         config.update(color_dict)
         self.assertRaises(NotImplementedError, square.set_match_colors, config)
 
+    def test_translate_color_map(self):
+        config = {'colors': ['r', 'b'],
+                  'c_range': [0.2, 0.7],
+                  'static': 0.1}
+        color_dict = square.make_color_map(config['colors'])
+        # start at extreme ends, should translate to -1, 1
+        color_list = (0.2, 0.1, 0.7)
+        # after translating,
+        x_y = [-1, 1]
+        translated, factor = square.translate_color_map(config, color_dict, color_list)
+        self.assertAlmostEqual(4, factor)
+        self.assertEqual(x_y, translated)
+
+    def test_translate_color_map_expanded(self):
+        config = {'colors': ['r', 'b'],
+                  'c_range': [0.1, 0.9],
+                  'static': 0.1}
+        color_dict = square.make_color_map(config['colors'])
+        # start at extreme ends, should translate to -1, 1
+        color_list = (0.1, 0.1, 0.9)
+        # after translating,
+        x_y = [-1, 1]
+        translated, factor = square.translate_color_map(config, color_dict, color_list)
+        self.assertAlmostEqual(2.5, factor)
+        self.assertEqual(x_y, translated)
+
     def test_change_background(self):
         config = {'colors': ['g', 'r'],
                   'c_range': [0.2, 0.7],

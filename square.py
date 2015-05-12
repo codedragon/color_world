@@ -1,3 +1,4 @@
+from __future__ import division
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import GeomVertexFormat, GeomVertexData
 from panda3d.core import Geom, GeomTriangles, GeomVertexWriter
@@ -65,8 +66,8 @@ def set_fixed_colors(color_dict):
     # to make sure we have set the correct direction, corresponding directions available
     # only change to that direction, if we are using that axis.
     if color_dict['colors'][0]:
-        print 'x direction'
-        print color_dict
+        # print 'x direction'
+        # print color_dict
         if any(d == 'right' for d in color_dict['match_direction']):
             color_list[color_dict[0]] = color_dict['c_range'][1]
         if any(d == 'left' for d in color_dict['match_direction']):
@@ -99,6 +100,17 @@ def setup_square(config):
     sq_node = GeomNode('square')
     sq_node.addGeom(square)
     return sq_node
+
+
+def translate_color_map(config, color_dict, color_list):
+    factor = 2 / (config['c_range'][1] - config['c_range'][0])
+    translate = (config['c_range'][1] * factor) - 1
+    last_avt = [0, 0]
+    if color_dict[0] is not None:
+        last_avt[0] = (color_list[color_dict[0]] * factor) - translate
+    if color_dict[1] is not None:
+        last_avt[1] = (color_list[color_dict[1]] * factor) - translate
+    return last_avt, factor
 
 
 # You can't normalize inline so this is a helper function

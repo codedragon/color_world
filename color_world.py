@@ -2,7 +2,7 @@ from __future__ import division
 from direct.showbase.ShowBase import ShowBase
 from direct.actor.Actor import ActorNode, Camera
 from panda3d.core import WindowProperties, NodePath, LVector3
-from panda3d.core import LineSegs
+from panda3d.core import LineSegs, OrthographicLens
 from inputs import Inputs
 import square
 
@@ -18,6 +18,7 @@ class ColorWorld(object):
         # self.color_map always corresponds to (r, g, b)
         self.color_dict = square.make_color_map(config['colors'])
         self.color_list = square.set_start_colors(config)
+
         print 'start color',  self.color_list
         print self.color_dict
         # sets the range of colors for this map
@@ -40,16 +41,8 @@ class ColorWorld(object):
         # map avatar variables
         self.render2 = None
         self.render2d = None
-        # what happens to starting position for map avatar when not changing in either x or y
-        # map has zero in the center (instead of middle middle of color range), so must translate
-        # range for map avatar is (-0.25, 0.25, -0.25, 0.25)
-        self.last_avt = [0, 0]
-        if self.color_dict[0] is not None:
-            self.last_avt[0] = (self.color_list[self.color_dict[0]]/2) - 0.25
-        if self.color_dict[1] is not None:
-            self.last_avt[1] = (self.color_list[self.color_dict[1]]/2) - 0.25
-        # need to figure out how to convert color to position. Know the scale is the same
-        # self.last_avt = [0, 0]
+        self.last_avt, self.avt_factor = square.translate_color_map(config, self.color_dict, self.color_list)
+        print self.color_list
         print self.last_avt
         self.map_avt_node = []
 
@@ -125,12 +118,13 @@ class ColorWorld(object):
         if move:
             # print move
             move *= self.speed
-            for key, value in self.color_dict.iteritems():
+            for i in range(3):
+                value = self.color_dict[i]
                 if value is not None:
-                    stop[key] = False
+                    stop[i] = False
                     # keys correspond to x,y,z
                     # values correspond to r,g,b
-                    if key == 2:
+                    if i == 2:
                         # z axis is treated differently
                         # need to work on this. z should
                         # be at min when both x and y are at max
@@ -139,13 +133,13 @@ class ColorWorld(object):
                         # print z_move
                         self.color_list[value] -= z_move
                     else:
-                        self.color_list[value] += move[key]
+                        self.color_list[value] += move[i]
                     if self.color_list[value] < self.c_range[0]:
                         self.color_list[value] = self.c_range[0]
-                        stop[key] = True
+                        stop[i] = True
                     elif self.color_list[value] > self.c_range[1]:
                         self.color_list[value] = self.c_range[1]
-                        stop[key] = True
+                        stop[i] = True
             self.base.setBackgroundColor(self.color_list[:])
             # print self.base.getBackgroundColor()
         return stop
@@ -161,12 +155,17 @@ class ColorWorld(object):
             avt.setColor(1, 1, 1)
             # print 'last', self.last_avt
             avt.move_to(self.last_avt[0], 1, self.last_avt[1])
+            # new_move = [i + (j * self.avt_factor) for i, j in zip(self.last_avt, move)]
             new_move = [i + j for i, j in zip(self.last_avt, move)]
             if stop[0]:
-                new_move[0] = self.last_avt[0]
+                pass
+                # new_move[0] = self.last_avt[0]
+                # print 'stop x', self.last_avt[0]
             if stop[1]:
-                new_move[1] = self.last_avt[1]
-            # print 'new', new_move
+                pass
+                # new_move[1] = self.last_avt[1]
+                # print 'stop y', self.last_avt[1]
+            print 'new', new_move
             self.last_avt = [new_move[0], new_move[1]]
             avt.draw_to(new_move[0], 1, new_move[1])
             self.map_avt_node.append(self.render2d.attach_new_node(avt.create()))
@@ -180,7 +179,6 @@ class ColorWorld(object):
 
     def check_color_match(self):
         check_color = [self.color_tolerance[0] < i < self.color_tolerance[1] for i in self.color_list]
-
 
     def setup_display2(self, display_node, config):
         props = WindowProperties()

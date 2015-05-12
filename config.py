@@ -6,15 +6,15 @@
 # color to vary with that axis, this means moving in that
 # direction will do nothing.
 
-colors = [None, 'g']
+colors = ['r', 'g']
 
 # if training, set this to determine which direction to use for first color match
 # right, left, front, back or None
 # this must match up with the axis. if using x axis, use right or left. if using y axis,
 # use front or back. if using x and y axis, can be ['front', 'right']. order irrelevant,
 # but number of match directions must match number of colors used.
-match_direction = ['right']
-# fixed_color = None
+# match_direction = ['right']
+# match_direction = None
 # if fixed_color is used, always starts in center, otherwise, start position is random.
 
 # all blue: if static low, dark blue, static high, yellow/white
