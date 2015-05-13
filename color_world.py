@@ -1,8 +1,9 @@
 from __future__ import division
 from direct.showbase.ShowBase import ShowBase
-from direct.actor.Actor import ActorNode, Camera
+from direct.actor.Actor import ActorNode
 from panda3d.core import WindowProperties, NodePath, LVector3
-from panda3d.core import LineSegs, OrthographicLens
+from panda3d.core import LineSegs, OrthographicLens, PNMImage
+from panda3d.core import Texture, CardMaker
 from inputs import Inputs
 import square
 
@@ -23,15 +24,15 @@ class ColorWorld(object):
         print self.color_dict
         # sets the range of colors for this map
         self.c_range = config['c_range']
+        self.color_match = square.set_match_colors(config, self.color_dict)
         # sets the tolerance for how close to a color for reward
-        self.tolerance = config['tolerance']
-        #
-        if config.get('fixed_color'):
-            # get user start place
-            self.color_match = square.set_fixed_colors(config)
-        else:
-            # choose a random color
-            self.color_match = square.set_random_colors(config)
+        self.color_tolerance = [(i - config['tolerance'], i + config['tolerance']) for i in self.color_match]
+        print 'color match', self.color_match
+        print 'color tolerance', self.color_tolerance
+        map_color_match, factor = square.translate_color_map(config, self.color_dict, self.color_match)
+        tolerance = config['tolerance'] * factor
+        map_color_tolerance = [(i - tolerance, i + tolerance) for i in map_color_match]
+
         # adjustment to speed so corresponds to gobananas task
         # 7 seconds to cross original environment
         # speed needs to be adjusted to both speed in original
@@ -39,11 +40,11 @@ class ColorWorld(object):
         # self.speed = 0.05 * (self.c_range[1] - self.c_range[0])
         self.speed = 0.05
         # map avatar variables
-        self.render2 = None
         self.render2d = None
         self.last_avt, self.avt_factor = square.translate_color_map(config, self.color_dict, self.color_list)
-        print self.color_list
-        print self.last_avt
+
+        # print self.color_list
+        # print self.last_avt
         self.map_avt_node = []
 
         # need a multiplier to the joystick output to tolerable speed
@@ -67,9 +68,10 @@ class ColorWorld(object):
                 props.set_size(600, 600)
                 props.set_origin(400, 50)
             self.base.win.requestProperties(props)
-            print self.base.win.get_size()
+            # print self.base.win.get_size()
             sq_node = square.setup_square(config)
             self.setup_display2(sq_node, config)
+            self.plot_match_space(map_color_tolerance)
 
         # create the avatar
         self.avatar = NodePath(ActorNode("avatar"))
@@ -78,19 +80,38 @@ class ColorWorld(object):
         self.base.camera.reparentTo(self.avatar)
         self.base.camera.setPos(0, 0, 0)
         self.avatar.setPos(-10, -10, 2)
-        self.frameTask = self.base.taskMgr.add(self.frame_loop, "frame_loop")
-        self.frameTask.last = 0  # task time of the last frame
-        self.base.setBackgroundColor(self.color_list[:])
+        self.started_game = self.base.taskMgr.doMethodLater(5, self.start_game, 'start_game')
+        self.showed_match = self.base.taskMgr.add(self.show_match_sample, 'match_image')
+        self.frameTask = None
         # print 'end init'
 
-    def frame_loop(self, task):
+    def show_match_sample(self, task):
+        print self.color_match[:]
+        # match_image.fill(*self.color_match[:])
+        card = CardMaker('card')
+        color_match = self.color_match[:]
+        color_match.append(1)
+        print color_match
+        card.setColor(*color_match[:])
+        self.render2d.attach_new_node(card.generate())
+
+    def start_game(self, task):
+        self.base.taskMgr.remove('match_image')
+        self.frameTask = self.base.taskMgr.add(self.game_loop, "game_loop")
+        self.frameTask.last = 0  # initiate task time of the last frame
+        self.base.setBackgroundColor(self.color_list[:])
+        return task.done
+
+    def game_loop(self, task):
         dt = task.time - task.last
         task.last = task.time
         self.velocity = self.inputs.poll_inputs(self.velocity)
         move = self.move_avatar(dt)
         stop = self.change_background(move)
         self.move_map_avatar(move, stop)
-        # self.check_color_match()
+        match = self.check_color_match()
+        if match:
+            return task.done
         return task.cont
 
     def move_avatar(self, dt):
@@ -177,11 +198,33 @@ class ColorWorld(object):
                 del self.map_avt_node[0:50]
 
     def check_color_match(self):
-        check_color = [self.color_tolerance[0] < i < self.color_tolerance[1] for i in self.color_list]
+        # print 'match this', self.color_tolerance
+        # print self.color_list
+        check_color = [j[0] < self.color_list[i] < j[1] for i, j in enumerate(self.color_tolerance)]
+        # print check_color
+        if all(check_color):
+            return True
+        else:
+            return False
+
+    def give_reward(self):
+        print 'yay'
+
+    def plot_match_space(self, corners):
+        match = LineSegs()
+        match.setThickness(1)
+        match.setColor(0, 0, 0)
+        match.move_to(corners[0][0], -5, corners[1][0])
+        match.draw_to(corners[0][1], -5, corners[1][0])
+        match.draw_to(corners[0][1], -5, corners[1][1])
+        match.draw_to(corners[0][0], -5, corners[1][1])
+        match.draw_to(corners[0][0], -5, corners[1][0])
+        self.render2d.attach_new_node(match.create())
 
     def setup_display2(self, display_node, config):
         props = WindowProperties()
-        props.setCursorHidden(True)
+        props.set_cursor_hidden(True)
+        props.set_foreground(False)
         if config.get('resolution'):
             props.setSize(700, 700)
             props.setOrigin(-int(config['resolution'][0] - 5), 5)

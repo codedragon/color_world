@@ -46,37 +46,37 @@ def set_start_colors(config):
 
 # also use random for setting up match, if not fixed
 # for setting up match, also want to specify which extreme to choose (left,right,front,back)
-def set_match_colors(color_dict):
+def set_match_colors(config, color_dict):
     # if not using fixed color, using random
-    if color_dict.get('match_direction') is None:
-        color_list = set_random_colors(color_dict)
+    if config.get('match_direction') is None:
+        color_list = set_random_colors(config)
     else:
-        color_list = set_fixed_colors(color_dict)
-    color_list = fix_static_colors(color_dict['colors'], color_dict['static'], color_list)
+        color_list = set_fixed_colors(config, color_dict)
+    color_list = fix_static_colors(config['colors'], config['static'], color_list)
     return color_list
 
 
-def set_random_colors(color_dict):
-    color_list = [random.uniform(color_dict['c_range'][0], color_dict['c_range'][1]) for i in range(3)]
+def set_random_colors(config):
+    color_list = [random.uniform(config['c_range'][0], config['c_range'][1]) for i in range(3)]
     return color_list
 
 
-def set_fixed_colors(color_dict):
+def set_fixed_colors(config, color_dict):
     color_list = [0, 0, 0]
     # to make sure we have set the correct direction, corresponding directions available
     # only change to that direction, if we are using that axis.
-    if color_dict['colors'][0]:
+    if config['colors'][0]:
         # print 'x direction'
         # print color_dict
-        if any(d == 'right' for d in color_dict['match_direction']):
-            color_list[color_dict[0]] = color_dict['c_range'][1]
-        if any(d == 'left' for d in color_dict['match_direction']):
-            color_list[color_dict[0]] = color_dict['c_range'][0]
-    if len(color_dict['colors']) > 1 and color_dict['colors'][1]:
-        if any(d == 'front' for d in color_dict['match_direction']):
-            color_list[color_dict[1]] = color_dict['c_range'][0]
-        if any(d == 'back' for d in color_dict['match_direction']):
-            color_list[color_dict[1]] = color_dict['c_range'][1]
+        if any(d == 'right' for d in config['match_direction']):
+            color_list[color_dict[0]] = config['c_range'][1]
+        if any(d == 'left' for d in config['match_direction']):
+            color_list[color_dict[0]] = config['c_range'][0]
+    if len(config['colors']) > 1 and config['colors'][1]:
+        if any(d == 'front' for d in config['match_direction']):
+            color_list[color_dict[1]] = config['c_range'][0]
+        if any(d == 'back' for d in config['match_direction']):
+            color_list[color_dict[1]] = config['c_range'][1]
     # if things didn't match up, will have all zeros.
     if all([c == 0 for c in color_list]):
         raise NotImplementedError('a direction was not set')
@@ -85,6 +85,7 @@ def set_fixed_colors(color_dict):
 
 
 def fix_static_colors(colors, static, color_list):
+    print 'fixed static'
     # finds color(s) that is/are not changing, and set
     # it equal to static. rest stay same.
     all_colors = ['r', 'g', 'b']

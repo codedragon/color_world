@@ -64,8 +64,7 @@ class ColorWorldTests(unittest.TestCase):
                   'static': 0.1,
                   'match_direction': ['left']}
         color_dict = square.make_color_map(config['colors'])
-        config.update(color_dict)
-        color_list = square.set_match_colors(config)
+        color_list = square.set_match_colors(config, color_dict)
         self.assertEqual([0.1, 0.1, 0.2], color_list)
 
     def test_fixed_match_colors(self):
@@ -74,8 +73,7 @@ class ColorWorldTests(unittest.TestCase):
                   'static': 0.1,
                   'match_direction': ['right']}
         color_dict = square.make_color_map(config['colors'])
-        config.update(color_dict)
-        color_list = square.set_match_colors(config)
+        color_list = square.set_match_colors(config, color_dict)
         self.assertEqual([0.1, 0.1, 0.7], color_list)
 
     def test_mis_matched_config(self):
@@ -84,8 +82,7 @@ class ColorWorldTests(unittest.TestCase):
                   'static': 0.1,
                   'match_direction': ['right']}
         color_dict = square.make_color_map(config['colors'])
-        config.update(color_dict)
-        self.assertRaises(NotImplementedError, square.set_match_colors, config)
+        self.assertRaises(NotImplementedError, square.set_match_colors, config, color_dict)
 
     def test_translate_color_map(self):
         config = {'colors': ['r', 'b'],
