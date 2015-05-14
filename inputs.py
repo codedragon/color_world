@@ -29,7 +29,7 @@ class Inputs(DirectObject):
             self.threshold = 0.1
         else:
             print 'Not using a joystick'
-
+        self.key_map = {'r': False}
         self.setup_inputs()
 
     def poll_inputs(self, velocity):
@@ -98,6 +98,14 @@ class Inputs(DirectObject):
 
     def setup_inputs(self):
         self.accept('q', self.close)
+        self.accept('r', self.set_key, ['r', True])
+        self.accept('l', self.set_key, ['r', False])
+        self.accept('f', self.set_key, ['f', True])
+        self.accept('b', self.set_key, ['f', False])
+
+    def set_key(self, key, value):
+        self.key_map[key] = value
+        return
 
     def close(self):
         pygame.quit()

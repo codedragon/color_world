@@ -17,22 +17,16 @@ class ColorWorld(object):
             execfile('config.py', config)
 
         # self.color_map always corresponds to (r, g, b)
+        # does not change during game, each game uses a particular color space
         self.color_dict = square.make_color_map(config['colors'])
-        self.color_list = square.set_start_colors(config)
-
-        print 'start color',  self.color_list
-        print self.color_dict
         # sets the range of colors for this map
         self.c_range = config['c_range']
-        self.color_match = square.set_match_colors(config, self.color_dict)
-        # sets the tolerance for how close to a color for reward
-        self.color_tolerance = [(i - config['tolerance'], i + config['tolerance']) for i in self.color_match]
-        print 'color match', self.color_match
-        print 'color tolerance', self.color_tolerance
-        map_color_match, factor = square.translate_color_map(config, self.color_dict, self.color_match)
-        tolerance = config['tolerance'] * factor
-        map_color_tolerance = [(i - tolerance, i + tolerance) for i in map_color_match]
-
+        # color variables (make dictionary?)
+        #self.color_list = [0, 0, 0]
+        #self.color_match = [0, 0, 0]
+        #self.color_tolerance = []
+        self.last_avt = []
+        self.avt_factor = 0
         # adjustment to speed so corresponds to gobananas task
         # 7 seconds to cross original environment
         # speed needs to be adjusted to both speed in original
@@ -41,7 +35,6 @@ class ColorWorld(object):
         self.speed = 0.05
         # map avatar variables
         self.render2d = None
-        self.last_avt, self.avt_factor = square.translate_color_map(config, self.color_dict, self.color_list)
 
         # print self.color_list
         # print self.last_avt
@@ -71,9 +64,9 @@ class ColorWorld(object):
                 props.set_origin(400, 50)
             self.base.win.requestProperties(props)
             # print self.base.win.get_size()
+            # setup color map on second window
             sq_node = square.setup_square(config)
             self.setup_display2(sq_node, config)
-            self.plot_match_space(map_color_tolerance)
 
         # create the avatar
         self.avatar = NodePath(ActorNode("avatar"))
@@ -82,10 +75,24 @@ class ColorWorld(object):
         self.base.camera.reparentTo(self.avatar)
         self.base.camera.setPos(0, 0, 0)
         self.avatar.setPos(-10, -10, 2)
+
+        # initialize task variables
+        self.frame_task = None
+        self.started_game = None
+        self.showed_match = None
+
+        # initialize with config
+        self.set_start(config)
+
+        # start the game
+        self.start_loop()
+
+        # print 'end init'
+
+    def start_loop(self):
+        # need to get new match
         self.started_game = self.base.taskMgr.doMethodLater(5, self.start_game, 'start_game')
         self.showed_match = self.base.taskMgr.add(self.show_match_sample, 'match_image')
-        self.frameTask = None
-        # print 'end init'
 
     def show_match_sample(self, task):
         print self.color_match[:]
@@ -95,18 +102,15 @@ class ColorWorld(object):
         color_match.append(1)
         print color_match
         card.set_color(*color_match[:])
-        size = 10
         card.set_frame(-12, -8, 0, 4)
-        #card.set_frame(-1 * size, 0 * size, -0.5 * size, 0.5 * size)
-        # self.card = NodePath(card.generate())
-        # self.base.camera.reparentTo(self.card)
         self.card = self.base.render.attach_new_node(card.generate())
+        return task.done
 
     def start_game(self, task):
         self.base.taskMgr.remove('match_image')
         self.card.detachNode()
-        self.frameTask = self.base.taskMgr.add(self.game_loop, "game_loop")
-        self.frameTask.last = 0  # initiate task time of the last frame
+        self.frame_task = self.base.taskMgr.add(self.game_loop, "game_loop")
+        self.frame_task.last = 0  # initiate task time of the last frame
         self.base.setBackgroundColor(self.color_list[:])
         return task.done
 
@@ -120,6 +124,7 @@ class ColorWorld(object):
         match = self.check_color_match()
         if match:
             print 'yay'
+            self.start_loop()
             return task.done
         return task.cont
 
@@ -200,6 +205,7 @@ class ColorWorld(object):
             self.map_avt_node.append(self.render2d.attach_new_node(avt.create()))
             # can't let too many nodes pile up
             if len(self.map_avt_node) > 299:
+                # removing the node does not remove the object from the list
                 for i, j in enumerate(self.map_avt_node):
                     j.removeNode()
                     if i > 49:
@@ -220,6 +226,8 @@ class ColorWorld(object):
         print 'yay'
 
     def plot_match_space(self, corners):
+        print 'plot match'
+        print corners
         match = LineSegs()
         match.setThickness(1)
         match.setColor(0, 0, 0)
@@ -228,9 +236,29 @@ class ColorWorld(object):
         match.draw_to(corners[0][1], -5, corners[1][1])
         match.draw_to(corners[0][0], -5, corners[1][1])
         match.draw_to(corners[0][0], -5, corners[1][0])
+        print self.render2d
         self.render2d.attach_new_node(match.create())
 
+    def set_start(self, config):
+        # set color_list with starting color
+        self.color_list = square.set_start_colors(config)
+        print 'start color',  self.color_list
+        print self.color_dict
+        # starting position for map avatar
+        self.last_avt, self.avt_factor = square.translate_color_map(config, self.color_dict, self.color_list)
+        self.color_match = square.set_match_colors(config, self.color_dict)
+        # sets the tolerance for how close to a color for reward
+        self.color_tolerance = [(i - config['tolerance'], i + config['tolerance']) for i in self.color_match]
+        print 'color match', self.color_match
+        print 'color tolerance', self.color_tolerance
+        map_color_match, factor = square.translate_color_map(config, self.color_dict, self.color_match)
+        tolerance = config['tolerance'] * factor
+        map_color_tolerance = [(i - tolerance, i + tolerance) for i in map_color_match]
+        if self.render2d:
+            self.plot_match_space(map_color_tolerance)
+
     def setup_display2(self, display_node, config):
+        print 'setup display2'
         props = WindowProperties()
         props.set_cursor_hidden(True)
         props.set_foreground(False)
@@ -241,19 +269,9 @@ class ColorWorld(object):
             props.setSize(300, 300)
             props.setOrigin(10, 10)
         window2 = self.base.openWindow(props=props, aspectRatio=1)
-
-        # self.render2 = NodePath('render2')
-        # camera = self.base.camList[-1]
         lens = OrthographicLens()
         lens.set_film_size(2, 2)
         lens.setNearFar(-100, 100)
-        # camera.node().setLens(lens)
-        # self.base.render2d.attach_new_node(camera)
-
-        # camera.reparent_to(self.render2)
-        # camera.setPos(0, -5, 0)
-        # self.render2.attach_new_node(display_node)
-        # print 'render2', self.render2
         self.render2d = NodePath('render2d')
         self.render2d.attach_new_node(display_node)
         camera2d = self.base.makeCamera(window2)

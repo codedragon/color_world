@@ -62,7 +62,7 @@ def set_random_colors(config):
 
 
 def set_fixed_colors(config, color_dict):
-    color_list = [0, 0, 0]
+    color_list = [None, None, None]
     # to make sure we have set the correct direction, corresponding directions available
     # only change to that direction, if we are using that axis.
     if config['colors'][0]:
@@ -77,10 +77,17 @@ def set_fixed_colors(config, color_dict):
             color_list[color_dict[1]] = config['c_range'][0]
         if any(d == 'back' for d in config['match_direction']):
             color_list[color_dict[1]] = config['c_range'][1]
-    # if things didn't match up, will have all zeros.
-    if all([c == 0 for c in color_list]):
+    # if things didn't match up, will have all Nones.
+    if all([c is None for c in color_list]):
         raise NotImplementedError('a direction was not set')
-    # do another raise if there are two axis and just one set direction?
+    # if there are two directions, must be two matches
+    print 'match', len(config['match_direction'])
+    print 'colors', len(config['colors'])
+    print config['colors']
+    if len(config['match_direction']) != len(config['colors']):
+        raise NotImplementedError('a direction was not set')
+
+
     return color_list
 
 
@@ -196,24 +203,25 @@ def make_color_vertices(config):
     # [(xmin, ymin), (xmax, ymin), (xmax, ymax), (ymax, xmin)]
     test = ['r', 'g', 'b']
     # append to the end to make sure we have 3 indices.
-    while len(config['colors']) < 3:
-        config['colors'].append(None)
+    colors = config['colors'][:]
+    while len(colors) < 3:
+        colors.append(None)
     # set the starting matrix with ones for everything, so don't have to worry about alpha
     color_vertices = [[1] * 4 for i in range(4)]
     for i in test:
-        if i == config['colors'][0]:
+        if i == colors[0]:
             # x coordinate
             color_vertices[0][test.index(i)] = config['c_range'][0]  # bottom left
             color_vertices[1][test.index(i)] = config['c_range'][1]  # bottom right
             color_vertices[2][test.index(i)] = config['c_range'][1]  # top right
             color_vertices[3][test.index(i)] = config['c_range'][0]  # top left
-        elif i == config['colors'][1]:
+        elif i == colors[1]:
             # y coordinate
             color_vertices[0][test.index(i)] = config['c_range'][0]  # bottom left
             color_vertices[1][test.index(i)] = config['c_range'][0]  # bottom right
             color_vertices[2][test.index(i)] = config['c_range'][1]  # top right
             color_vertices[3][test.index(i)] = config['c_range'][1]  # top left
-        elif i == config['colors'][2]:
+        elif i == colors[2]:
             # this definitely needs testing. not even sure what I want to happen here...
             # if I use the mid for bottom right and top left, I have something very similar
             # to what I have with two colors, the only difference is the bottom left corner
