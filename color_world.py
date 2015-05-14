@@ -51,6 +51,8 @@ class ColorWorld(object):
         self.vel_base = 3
         self.max_vel = [500, 500, 0]
 
+        self.card = None
+
         self.base = ShowBase()
         self.base.disableMouse()
         # assume we are showing windows unless proven otherwise
@@ -92,11 +94,17 @@ class ColorWorld(object):
         color_match = self.color_match[:]
         color_match.append(1)
         print color_match
-        card.setColor(*color_match[:])
-        self.render2d.attach_new_node(card.generate())
+        card.set_color(*color_match[:])
+        size = 10
+        card.set_frame(-12, -8, 0, 4)
+        #card.set_frame(-1 * size, 0 * size, -0.5 * size, 0.5 * size)
+        # self.card = NodePath(card.generate())
+        # self.base.camera.reparentTo(self.card)
+        self.card = self.base.render.attach_new_node(card.generate())
 
     def start_game(self, task):
         self.base.taskMgr.remove('match_image')
+        self.card.detachNode()
         self.frameTask = self.base.taskMgr.add(self.game_loop, "game_loop")
         self.frameTask.last = 0  # initiate task time of the last frame
         self.base.setBackgroundColor(self.color_list[:])
@@ -111,6 +119,7 @@ class ColorWorld(object):
         self.move_map_avatar(move, stop)
         match = self.check_color_match()
         if match:
+            print 'yay'
             return task.done
         return task.cont
 
