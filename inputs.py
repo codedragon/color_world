@@ -29,7 +29,7 @@ class Inputs(DirectObject):
             self.threshold = 0.1
         else:
             print 'Not using a joystick'
-        self.key_map = {'r': False}
+        self.key_map = {'r': None, 'f': None}
         self.setup_inputs()
 
     def poll_inputs(self, velocity):

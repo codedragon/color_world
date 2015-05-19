@@ -32,7 +32,8 @@ def make_color_map(colors):
 # if setting the matching color manually,
 # set colors to some combination of midpoint and static for starting position
 # otherwise random and static
-def set_start_colors(config):
+def set_start_position_colors(config=None):
+    # will either be a random start or middle of field
     if config.get('match_direction') is None:
         print 'random'
         color_list = set_random_colors(config)
@@ -87,7 +88,6 @@ def set_fixed_colors(config, color_dict):
     if len(config['match_direction']) != len(config['colors']):
         raise NotImplementedError('a direction was not set')
 
-
     return color_list
 
 
@@ -114,6 +114,7 @@ def translate_color_map(config, color_dict, color_list):
     factor = 2 / (config['c_range'][1] - config['c_range'][0])
     translate = (config['c_range'][1] * factor) - 1
     last_avt = [0, 0]
+    print 'translate this', color_list
     if color_dict[0] is not None:
         last_avt[0] = (color_list[color_dict[0]] * factor) - translate
     if color_dict[1] is not None:

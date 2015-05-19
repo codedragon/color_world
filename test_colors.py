@@ -42,7 +42,7 @@ class ColorWorldTests(unittest.TestCase):
         config = {'colors': ['b', 'r'],
                   'c_range': [0.2, 0.7],
                   'static': 0.1}
-        color_list = square.set_start_colors(config)
+        color_list = square.set_start_position_colors(config)
         # red and blue between c_range, green static
         # print color_list
         self.assertTrue(0.2 <= color_list[0] <= 0.7)
@@ -54,7 +54,7 @@ class ColorWorldTests(unittest.TestCase):
                   'c_range': [0.2, 0.7],
                   'static': 0.1,
                   'match_direction': ['right']}
-        color_list = square.set_start_colors(config)
+        color_list = square.set_start_position_colors(config)
         mid = config['c_range'][0] + (config['c_range'][1] - config['c_range'][0])/2
         self.assertEqual([mid, 0.1, mid], color_list)
 
