@@ -4,7 +4,13 @@ from direct.actor.Actor import ActorNode
 from panda3d.core import WindowProperties, NodePath, LVector3
 from panda3d.core import LineSegs, OrthographicLens, CardMaker
 from inputs import Inputs
+from sys import path
 import square
+try:
+    path.insert(1, '../pydaq')
+    import pydaq
+except ImportError:
+    pydaq = None
 
 
 class ColorWorld(object):
@@ -16,6 +22,10 @@ class ColorWorld(object):
             execfile('config.py', self.config)
         else:
             self.config = config
+        self.reward = None
+        if pydaq:
+            self.reward = pydaq.GiveReward()
+        self.reward_count = 0
         # self.color_map always corresponds to (r, g, b)
         # does not change during game, each game uses a particular color space
         self.color_dict = square.make_color_map(self.config['colors'])
@@ -38,7 +48,8 @@ class ColorWorld(object):
         # speed needs to be adjusted to both speed in original
         # environment and c_range of colors
         # self.speed = 0.05 * (self.c_range[1] - self.c_range[0])
-        self.speed = 0.05
+        # speed is own variable, so can be changed during training.
+        self.speed = self.config['speed']
         # map avatar variables
         self.render2d = None
         self.match_square = None
@@ -83,6 +94,7 @@ class ColorWorld(object):
         self.frame_task = None
         self.started_game = None
         self.showed_match = None
+        self.gave_reward = None
 
         # initialize and start the game
         self.set_next_trial()
@@ -95,6 +107,7 @@ class ColorWorld(object):
         self.started_game = self.base.taskMgr.doMethodLater(5, self.start_play, 'start_play')
         self.showed_match = self.base.taskMgr.add(self.show_match_sample, 'match_image')
 
+    # Task methods
     def show_match_sample(self, task):
         print 'show match sample'
         print self.color_match[:]
@@ -128,10 +141,21 @@ class ColorWorld(object):
         self.move_map_avatar(move, stop)
         match = self.check_color_match()
         if match:
-            print 'yay'
-            self.end_loop()
+            self.give_reward()
             return task.done
         return task.cont
+
+    def reward_loop(self, task):
+        self.reward_count += 1
+        if self.reward_count <= self.config['num_beeps']:
+            if self.reward:
+                print 'give a bloody reward already'
+                self.reward.pumpOut()
+            print 'give reward'
+            return task.again
+        else:
+            self.end_loop()
+            return task.done
 
     def move_avatar(self, dt):
         # print 'velocity', self.velocity
@@ -230,15 +254,18 @@ class ColorWorld(object):
             return False
 
     def give_reward(self):
-        print 'yay'
+        # clear the background
+        self.base.setBackgroundColor(0.41, 0.41, 0.41)
+        print 'give first reward'
+        self.reward_count = 1
+        if self.reward:
+            self.reward.pumpOut()
+        self.gave_reward = self.base.taskMgr.doMethodLater(self.config['pump_delay'], self.reward_loop, 'reward_loop')
 
     def end_loop(self):
         print 'end loop'
         # clear avatar map
         self.clear_avatar_map()
-        # need to clear the background, so can see the match color without
-        # the old color in the background
-        self.base.setBackgroundColor(0.41, 0.41, 0.41)
         # if there is a match set, return to center of color gradient,
         # set new match, if applicable
         self.set_next_trial()

@@ -12,27 +12,31 @@ colors = ['r']
 # right, left, front, back or None
 # this must match up with the axis. if using x axis, use right or left. if using y axis,
 # use front or back. None for random
+# if match_direction is used, always starts in center, otherwise, start position is random.
 match_direction = ['right']
 # match_direction = None
+
 # Not implemented yet:
 # if using x and y axis, can be ['front', 'right']. order irrelevant,
 # but number of match directions must match number of colors used.
-
-# if fixed_color is used, always starts in center, otherwise, start position is random.
-
-# all blue: if static low, dark blue, static high, yellow/white
-# all red:  if static low, dark red, static high, teal/white
-# all green: if static low, dark green, static high, lavender/white
-
-# I suppose could eventually want to make this different for all
-# colors that are varying. Square is designed for a range of 0.5
+# high numbers are very bright, low numbers very dark
 # c_range = [0.2, 0.7]
 c_range = [0.2, 0.7]
 # if there is a color that does not vary,
 # this is its value
 static = 0.1
+# all blue: if static low, dark blue, static high, yellow/white
+# all red:  if static low, dark red, static high, teal/white
+# all green: if static low, dark green, static high, lavender/white
+
+# speed
+speed = 0.05
 
 # how close to a color to get reward
 tolerance = 0.01
 
-# resolution = [1024, 768]
+num_beeps = 3
+
+pump_delay = 0.2
+
+resolution = [1024, 768]
