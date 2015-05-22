@@ -119,16 +119,19 @@ class ColorWorld(object):
         print color_match
         card.set_color(*color_match[:])
         card.set_frame(-12, -8, 0, 4)
+        # log this
         self.card = self.base.render.attach_new_node(card.generate())
         return task.done
 
     def start_play(self, task):
         print 'start play'
+        # log this
         self.base.taskMgr.remove('match_image')
         self.card.removeNode()
         # print self.base.render.ls()
         self.frame_task = self.base.taskMgr.add(self.game_loop, "game_loop")
         self.frame_task.last = 0  # initiate task time of the last frame
+        # log this
         self.base.setBackgroundColor(self.color_list[:])
         return task.done
 
@@ -149,6 +152,7 @@ class ColorWorld(object):
         self.reward_count += 1
         if self.reward_count <= self.config['num_beeps']:
             if self.reward:
+                # log this
                 print 'give a bloody reward already'
                 self.reward.pumpOut()
             print 'give reward'
@@ -204,6 +208,7 @@ class ColorWorld(object):
                     elif self.color_list[value] > self.c_range[1]:
                         self.color_list[value] = self.c_range[1]
                         stop[i] = True
+            # log this
             self.base.setBackgroundColor(self.color_list[:])
             # print self.base.getBackgroundColor()
         return stop
@@ -259,6 +264,7 @@ class ColorWorld(object):
         print 'give first reward'
         self.reward_count = 1
         if self.reward:
+            # log this
             self.reward.pumpOut()
         self.gave_reward = self.base.taskMgr.doMethodLater(self.config['pump_delay'], self.reward_loop, 'reward_loop')
 
