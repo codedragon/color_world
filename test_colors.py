@@ -5,7 +5,7 @@ from panda3d.core import loadPrcFileData, LVector3
 
 
 class ColorWorldTests(unittest.TestCase):
-
+    # need a test to make sure color map and background map correctly
     def test_make_color_map(self):
         colors = ['r', 'b']
         color_map = square.make_color_map(colors)
