@@ -108,5 +108,6 @@ class Inputs(DirectObject):
         return
 
     def close(self):
-        pygame.quit()
+        if pygame:
+            pygame.quit()
         sys.exit()
